@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة العميل</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .pulse-alert {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-teal-50 to-blue-100 min-h-screen">
+    <!-- Selection Screen -->
+    <div id="selectionScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+            <div class="text-center mb-8">
+                <svg class="w-24 h-24 mx-auto text-teal-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h2 class="text-3xl font-bold text-gray-800">متابعة دورك</h2>
+                <p class="text-gray-600 mt-2" id="centerNameClient">مرحباً بك في المركز الطبي</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">اختر العيادة:</label>
+                    <select id="clientClinicSelect" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-600 focus:outline-none text-lg">
+                        <option value="">اختر العيادة</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">رقم تذكرتك:</label>
+                    <input type="number" id="clientTicketNumber" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-600 focus:outline-none text-lg text-center font-bold" placeholder="أدخل الرقم">
+                </div>
+                
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-700 mb-3 font-bold">للحصول على إشعارات (اختياري):</p>
+                    <input type="email" id="clientEmail" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2" placeholder="البريد الإلكتروني">
+                    <input type="tel" id="clientPhone" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="رقم الهاتف (واتساب)">
+                    <p class="text-xs text-gray-500 mt-2">* سيتم إشعارك عند اقتراب دورك</p>
+                </div>
+                
+                <button onclick="startTracking()" class="w-full bg-teal-600 text-white py-3 rounded-lg text-xl font-bold hover:bg-teal-700 transition-colors">بدء المتابعة</button>
+                
+                <a href="index.html" class="block text-center text-gray-600 hover:text-gray-800 mt-4">العودة للصفحة الرئيسية</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tracking Screen -->
+    <div id="trackingScreen" class="hidden min-h-screen p-4">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-teal-600 to-blue-600 text-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 id="trackingClinicName" class="text-2xl font-bold">عيادة طب الأسرة</h2>
+                        <p class="text-sm mt-1">رقم تذكرتك: <span id="trackingTicketNumber" class="text-2xl font-bold">25</span></p>
+                    </div>
+                    <button onclick="stopTracking()" class="bg-white text-teal-600 px-4 py-2 rounded-lg font-bold hover:bg-gray-100">إيقاف</button>
+                </div>
+            </div>
+
+            <!-- Current Number -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-6 text-center">
+                <p class="text-gray-600 mb-2">الرقم الحالي</p>
+                <p id="currentNumberTracking" class="text-8xl font-black text-blue-600 mb-4">0</p>
+                <div id="statusMessage" class="text-lg font-bold text-gray-700"></div>
+            </div>
+
+            <!-- Waiting Info -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <svg class="w-12 h-12 mx-auto text-orange-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-gray-600 text-sm">الأرقام المتبقية</p>
+                    <p id="remainingNumbers" class="text-4xl font-bold text-gray-800">0</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <svg class="w-12 h-12 mx-auto text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-gray-600 text-sm">حالة العيادة</p>
+                    <p id="clinicStatus" class="text-lg font-bold text-green-600">نشطة</p>
+                </div>
+            </div>
+
+            <!-- Alert -->
+            <div id="yourTurnAlert" class="hidden pulse-alert bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl shadow-2xl p-8 text-center">
+                <svg class="w-20 h-20 mx-auto mb-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+                <h3 class="text-3xl font-bold mb-2">حان دورك!</h3>
+                <p class="text-xl">يرجى التوجه إلى العيادة الآن</p>
+            </div>
+
+            <!-- Last Update -->
+            <div class="text-center text-gray-600 mt-6">
+                <p class="text-sm">آخر تحديث: <span id="lastUpdate">--:--</span></p>
+            </div>
+        </div>
+    </div>
+<button onclick="showComplaintModal()" class="fixed bottom-6 left-6 bg-orange-600 text-white p-4 rounded-full shadow-2xl hover:bg-orange-700 z-50 transition-all hover:scale-110">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+    </svg>
+</button>
+
+<!-- Complaint/Suggestion Modal -->
+<div id="complaintModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-gray-800">شكوى أو اقتراح</h3>
+            <button onclick="closeComplaintModal()" class="text-gray-600 hover:text-gray-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Type Selection -->
+            <div>
+                <label class="block text-gray-700 font-bold mb-2">النوع: *</label>
+                <div class="flex gap-4">
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="complaintType" value="شكوى" class="hidden complaint-type-radio" checked>
+                        <div class="complaint-type-option border-2 border-red-600 bg-red-50 rounded-lg p-4 text-center transition-all">
+                            <p class="font-bold text-red-600">شكوى</p>
+                        </div>
+                    </label>
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="complaintType" value="اقتراح" class="hidden complaint-type-radio">
+                        <div class="complaint-type-option border-2 border-gray-300 rounded-lg p-4 text-center hover:border-blue-600 transition-all">
+                            <p class="font-bold text-blue-600">اقتراح</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div>
+                <label class="block text-gray-700 font-bold mb-2">المحتوى: * (140 حرف كحد أقصى)</label>
+                <textarea id="complaintContent" rows="4" maxlength="140" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-orange-600 focus:outline-none" placeholder="اكتب شكواك أو اقتراحك هنا..." oninput="updateCharCount()"></textarea>
+                <p class="text-sm text-gray-600 text-left"><span id="charCount">0</span> / 140</p>
+            </div>
+
+            <!-- Optional Info -->
+            <div class="bg-blue-50 rounded-lg p-4">
+                <p class="text-sm text-gray-700 mb-3 font-bold">بيانات اختيارية (للتواصل معك):</p>
+                <div class="space-y-2">
+                    <input type="text" id="complaintName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="الاسم (اختياري)">
+                    <input type="tel" id="complaintPhone" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="رقم الهاتف (اختياري)">
+                    <input type="email" id="complaintEmail" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="البريد الإلكتروني (اختياري)">
+                </div>
+            </div>
+
+            <!-- Additional Notes -->
+            <div>
+                <label class="block text-gray-700 font-bold mb-2">ملاحظات إضافية (اختياري):</label>
+                <textarea id="complaintNotes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-orange-600 focus:outline-none" placeholder="أي ملاحظات أخرى"></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button onclick="submitComplaint()" class="w-full bg-orange-600 text-white py-3 rounded-lg text-lg font-bold hover:bg-orange-700 transition-colors">
+                📤 إرسال
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Success Message -->
+<div id="complaintSuccess" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
+        <svg class="w-20 h-20 mx-auto text-green-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">تم الإرسال بنجاح! ✅</h3>
+        <p class="text-gray-600 mb-6">شكراً لك، سيتم مراجعة رسالتك والرد عليها في أقرب وقت</p>
+        <button onclick="closeComplaintSuccess()" class="bg-orange-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-orange-700">
+            حسناً
+        </button>
+    </div>
+</div>
+
+    <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyArFKjBYsFhsPyJPJpjLhH2eSEHlUFEzhI",
+  authDomain: "queue-717d5.firebaseapp.com",
+  databaseURL: "https://queue-717d5-default-rtdb.firebaseio.com",
+  projectId: "queue-717d5",
+  storageBucket: "queue-717d5.firebasestorage.app",
+  messagingSenderId: "837806460328",
+  appId: "1:837806460328:web:f2070b93a2784b1b25619d",
+  measurementId: "G-GM30LE46F6"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database(); // Realtime Database
+const firestore = firebase.firestore(); // Firestore
+
+        
+
+        let trackingClinicId = null;
+        let trackingNumber = null;
+        let notificationShown = false;
+
+        window.onload = function() {
+            loadCenterName();
+            loadClinics();
+        };
+
+        function loadCenterName() {
+            db.ref('settings/centerName').once('value', (snapshot) => {
+                const name = snapshot.val() || 'المركز الطبي';
+                document.getElementById('centerNameClient').textContent = 'مرحباً بك في ' + name;
+            });
+        }
+
+        function loadClinics() {
+            db.ref('clinics').once('value', (snapshot) => {
+                const clinics = snapshot.val() || {};
+                const select = document.getElementById('clientClinicSelect');
+                
+                Object.keys(clinics).forEach(id => {
+                    const clinic = clinics[id];
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = clinic.name;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        function startTracking() {
+            const clinicId = document.getElementById('clientClinicSelect').value;
+            const ticketNumber = parseInt(document.getElementById('clientTicketNumber').value);
+            const email = document.getElementById('clientEmail').value;
+            const phone = document.getElementById('clientPhone').value;
+
+            if (!clinicId || !ticketNumber) {
+                alert('يرجى اختيار العيادة وإدخال رقم التذكرة');
+                return;
+            }
+
+            trackingClinicId = clinicId;
+            trackingNumber = ticketNumber;
+
+            db.ref('clinics/' + clinicId).once('value', (snapshot) => {
+                const clinic = snapshot.val();
+                document.getElementById('trackingClinicName').textContent = clinic.name;
+                document.getElementById('trackingTicketNumber').textContent = ticketNumber;
+
+                // Save tracking info (optional notifications)
+                if (email || phone) {
+                    db.ref('clientTracking').push({
+                        clinicId: clinicId,
+                        ticketNumber: ticketNumber,
+                        email: email,
+                        phone: phone,
+                        timestamp: Date.now()
+                    });
+                }
+
+                showTrackingScreen();
+                startListening();
+            });
+        }
+
+        function showTrackingScreen() {
+            document.getElementById('selectionScreen').classList.add('hidden');
+            document.getElementById('trackingScreen').classList.remove('hidden');
+        }
+
+        function stopTracking() {
+            if (confirm('هل تريد إيقاف المتابعة؟')) {
+                trackingClinicId = null;
+                trackingNumber = null;
+                notificationShown = false;
+                document.getElementById('trackingScreen').classList.add('hidden');
+                document.getElementById('selectionScreen').classList.remove('hidden');
+                document.getElementById('clientTicketNumber').value = '';
+                document.getElementById('clientEmail').value = '';
+                document.getElementById('clientPhone').value = '';
+            }
+        }
+
+        function startListening() {
+            db.ref('clinics/' + trackingClinicId).on('value', (snapshot) => {
+                const clinic = snapshot.val();
+                updateTrackingInfo(clinic);
+            });
+        }
+
+        function updateTrackingInfo(clinic) {
+            const currentNumber = clinic.currentNumber || 0;
+            document.getElementById('currentNumberTracking').textContent = currentNumber;
+            
+            // Update last update time
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('ar-EG', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            // Calculate remaining
+            const remaining = trackingNumber - currentNumber;
+            document.getElementById('remainingNumbers').textContent = remaining > 0 ? remaining : 0;
+
+            // Update status
+            const statusEl = document.getElementById('clinicStatus');
+            if (clinic.status === 'active') {
+                statusEl.textContent = 'نشطة';
+                statusEl.className = 'text-lg font-bold text-green-600';
+            } else {
+                statusEl.textContent = 'متوقفة';
+                statusEl.className = 'text-lg font-bold text-red-600';
+            }
+
+            // Update status message
+            const messageEl = document.getElementById('statusMessage');
+            const alertEl = document.getElementById('yourTurnAlert');
+
+            if (currentNumber >= trackingNumber) {
+                messageEl.textContent = '🎉 حان دورك الآن!';
+                messageEl.className = 'text-lg font-bold text-green-600';
+                alertEl.classList.remove('hidden');
+                
+                if (!notificationShown) {
+                    playNotificationSound();
+                    notificationShown = true;
+                    
+                    // Browser notification
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('حان دورك!', {
+                            body: 'يرجى التوجه إلى ' + clinic.name,
+                            icon: '/icon.png'
+                        });
+                    }
+                }
+            } else if (remaining <= 3 && remaining > 0) {
+                messageEl.textContent = '⚠️ دورك قريب جداً!';
+                messageEl.className = 'text-lg font-bold text-orange-600';
+                alertEl.classList.add('hidden');
+            } else if (remaining <= 10 && remaining > 0) {
+                messageEl.textContent = '⏳ دورك اقترب';
+                messageEl.className = 'text-lg font-bold text-blue-600';
+                alertEl.classList.add('hidden');
+            } else {
+                messageEl.textContent = 'يرجى الانتظار';
+                messageEl.className = 'text-lg font-bold text-gray-600';
+                alertEl.classList.add('hidden');
+            }
+        }
+
+        function playNotificationSound() {
+            const audio = new Audio('audio/ding.mp3');
+            audio.play().catch(() => {
+                // If audio fails, use beep
+                const context = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = context.createOscillator();
+                oscillator.connect(context.destination);
+                oscillator.frequency.value = 800;
+                oscillator.start();
+                oscillator.stop(context.currentTime + 0.3);
+            });
+        }
+
+        // Request notification permission on load
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+
+        document.querySelectorAll('.complaint-type-radio').forEach(radio => {
+    radio.addEventListener('change', function() {
+        document.querySelectorAll('.complaint-type-option').forEach(opt => {
+            opt.classList.remove('border-red-600', 'bg-red-50', 'border-blue-600', 'bg-blue-50');
+            opt.classList.add('border-gray-300');
+        });
+        if (this.checked) {
+            if (this.value === 'شكوى') {
+                this.nextElementSibling.classList.add('border-red-600', 'bg-red-50');
+            } else {
+                this.nextElementSibling.classList.add('border-blue-600', 'bg-blue-50');
+            }
+            this.nextElementSibling.classList.remove('border-gray-300');
+        }
+    });
+});
+
+function showComplaintModal() {
+    document.getElementById('complaintModal').classList.remove('hidden');
+}
+
+function closeComplaintModal() {
+    document.getElementById('complaintModal').classList.add('hidden');
+    // Clear form
+    document.getElementById('complaintContent').value = '';
+    document.getElementById('complaintName').value = '';
+    document.getElementById('complaintPhone').value = '';
+    document.getElementById('complaintEmail').value = '';
+    document.getElementById('complaintNotes').value = '';
+    document.getElementById('charCount').textContent = '0';
+}
+
+function updateCharCount() {
+    const content = document.getElementById('complaintContent').value;
+    document.getElementById('charCount').textContent = content.length;
+}
+
+async function submitComplaint() {
+    const type = document.querySelector('input[name="complaintType"]:checked').value;
+    const content = document.getElementById('complaintContent').value.trim();
+    const name = document.getElementById('complaintName').value.trim();
+    const phone = document.getElementById('complaintPhone').value.trim();
+    const email = document.getElementById('complaintEmail').value.trim();
+    const notes = document.getElementById('complaintNotes').value.trim();
+
+    if (!content) {
+        alert('يرجى كتابة المحتوى');
+        return;
+    }
+
+    if (content.length > 140) {
+        alert('المحتوى يجب ألا يتجاوز 140 حرف');
+        return;
+    }
+
+    try {
+        await firestore.collection('complaints').add({
+            type: type,
+            content: content,
+            name: name || null,
+            phone: phone || null,
+            email: email || null,
+            notes: notes || null,
+            status: 'جديد',
+            adminResponse: '',
+            submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            respondedAt: null
+        });
+
+        closeComplaintModal();
+        document.getElementById('complaintSuccess').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error submitting complaint:', error);
+        alert('خطأ في الإرسال، يرجى المحاولة مرة أخرى');
+    }
+}
+
+function closeComplaintSuccess() {
+    document.getElementById('complaintSuccess').classList.add('hidden');
+}
+
+    </script>
+</body>
+</html>

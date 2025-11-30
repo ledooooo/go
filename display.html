@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>شاشة العرض</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        body { font-family: 'Cairo', sans-serif; overflow: hidden; background: linear-gradient(135deg,#eff6ff,#e9d5ff); }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .notification-bar {
+            animation: slideDown 0.5s ease-out;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .blink {
+            animation: blink 1s ease-in-out infinite;
+        }
+        
+        .clinic-card {
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .clinic-card.active {
+            border-color: #2563eb;
+        }
+        
+        .clinic-card.paused {
+            opacity: 0.5;
+        }
+
+        /* prevent body scaling causing scrollbars */
+        html, body { height: 100%; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Top Bar -->
+    <div class="bg-gradient-to-r from-blue-900 to-indigo-900 text-white px-6 py-3 flex items-center justify-between shadow-lg">
+        <div class="flex items-center gap-4">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            <h1 id="centerName" class="text-2xl font-bold">المركز الطبي</h1>
+        </div>
+        <div class="flex items-center gap-6">
+            <!-- Settings Menu Button -->
+            <button onclick="toggleSettingsMenu()" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition-all">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+            </button>
+
+            <!-- Zoom buttons in the top bar as requested -->
+            <div class="flex gap-2 items-center">
+                <button onclick="zoomIn()" title="تكبير" class="bg-white text-gray-800 px-3 py-2 rounded-lg font-bold">🔍+</button>
+                <button onclick="zoomOut()" title="تصغير" class="bg-white text-gray-800 px-3 py-2 rounded-lg font-bold">🔍-</button>
+                <button onclick="resetZoom()" title="إعادة تعيين التكبير" class="bg-white text-gray-800 px-3 py-2 rounded-lg font-bold">⟲</button>
+            </div>
+
+            <select id="screenSelect" class="bg-white text-gray-800 px-4 py-2 rounded-lg font-bold">
+                <option value="1">الشاشة 1</option>
+                <option value="2">الشاشة 2</option>
+                <option value="3">الشاشة 3</option>
+                <option value="4">الشاشة 4</option>
+            </select>
+            <div class="text-right">
+                <div id="currentTime" class="text-xl font-bold"></div>
+                <div id="currentDate" class="text-sm"></div>
+            </div>
+            <button onclick="toggleFullscreen()" id="fullscreenBtn" class="bg-white text-gray-800 px-3 py-2 rounded-lg font-bold">📺 تفعيل ملء الشاشة</button>
+        </div>
+    </div>
+
+    <!-- Settings Menu -->
+    <div id="settingsMenu" class="hidden fixed top-16 left-6 bg-white rounded-lg shadow-2xl p-6 z-50 w-80">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">إعدادات العرض</h3>
+        
+        <div class="space-y-4">
+            <!-- Screen Selection -->
+            <div>
+                <label class="block text-gray-700 font-bold mb-2">رقم الشاشة:</label>
+                <select id="screenSelectMenu" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="1">الشاشة 1</option>
+                    <option value="2">الشاشة 2</option>
+                    <option value="3">الشاشة 3</option>
+                    <option value="4">الشاشة 4</option>
+                </select>
+            </div>
+
+            <!-- Zoom Controls -->
+            <div>
+                <label class="block text-gray-700 font-bold mb-2">التكبير/التصغير:</label>
+                <div class="flex gap-2">
+                    <button onclick="zoomIn()" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold">
+                        🔍+ تكبير
+                    </button>
+                    <button onclick="zoomOut()" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold">
+                        🔍- تصغير
+                    </button>
+                </div>
+                <button onclick="resetZoom()" class="w-full mt-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 font-bold">
+                    إعادة تعيين
+                </button>
+                <p class="text-sm text-gray-600 mt-2 text-center">المستوى: <span id="zoomLevel">100%</span></p>
+            </div>
+
+            <!-- Fullscreen -->
+            <div>
+                <label class="block text-gray-700 font-bold mb-2">وضع ملء الشاشة:</label>
+                <button onclick="toggleFullscreen()" id="fullscreenBtnMenu" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-bold">
+                    📺 تفعيل ملء الشاشة
+                </button>
+            </div>
+
+            <!-- Close Button -->
+            <button onclick="toggleSettingsMenu()" class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 font-bold">
+                إغلاق
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification Bar -->
+    <div id="notificationBar" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="notification-bar bg-gradient-to-r from-green-500 to-emerald-600 text-white px-12 py-8 shadow-2xl rounded-xl max-w-4xl w-full mx-8">
+            <div class="flex flex-col items-center gap-6">
+                <svg class="w-20 h-20 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+                <div class="text-center">
+                    <p id="notificationText" class="text-4xl font-bold mb-3"></p>
+                    <p id="notificationTime" class="text-2xl font-bold"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex overflow-hidden">
+        <!-- Clinics Column -->
+        <div class="w-1/4 p-4 overflow-hidden flex flex-col">
+            <div id="clinicsContainer" class="flex-1 space-y-3 overflow-hidden"></div>
+                    <!-- Doctors Sidebar -->
+<div class="p-4 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-lg h-full p-4 overflow-y-auto max-h-96">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 text-center">الأطباء المتواجدون</h3>
+        <div id="doctorsContainer" class="space-y-3"></div>
+    </div>
+</div>
+
+            
+            <!-- QR Code Card -->
+            <div class="bg-white rounded-xl shadow-lg p-4 mt-4">
+                <div class="text-center">
+                    <p class="text-gray-700 font-bold mb-2">للمتابعة من هاتفك</p>
+                    <div class="bg-gray-200 w-32 h-32 mx-auto rounded-lg flex items-center justify-center">
+                        <span class="text-gray-500 text-sm">ضع QR Code هنا</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2">امسح الكود للدخول</p>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Video Player -->
+        <div class="flex-1 p-4">
+            <div class="bg-black rounded-xl shadow-xl h-full overflow-hidden relative">
+                <video id="videoPlayer" class="w-full h-full object-contain" autoplay loop muted playsinline></video>
+                <div class="absolute bottom-4 left-4 right-4 flex items-center gap-2 bg-black bg-opacity-50 rounded-lg p-2">
+                    <button onclick="togglePlayPause()" class="text-white p-2 hover:bg-white hover:bg-opacity-20 rounded">
+                        <svg id="playIcon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path>
+                        </svg>
+                        <svg id="pauseIcon" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5 4a2 2 0 012-2h2a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm8 0a2 2 0 012-2h2a2 2 0 012 2v12a2 2 0 01-2 2h-2a2 2 0 01-2-2V4z"></path>
+                        </svg>
+                    </button>
+                    <button onclick="toggleMute()" class="text-white p-2 hover:bg-white hover:bg-opacity-20 rounded">
+                        <svg id="muteIcon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                        <svg id="unmuteIcon" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="50" class="flex-1 mx-2" onchange="changeVolume(this.value)">
+                    <span class="text-white text-sm" id="volumeDisplay">50%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom News Ticker -->
+    <div class="bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-4 overflow-hidden relative">
+        <div id="newsTickerContainer" class="absolute whitespace-nowrap">
+            <span id="newsTicker" class="text-2xl font-bold px-8 inline-block">مرحباً بكم في المركز الطبي - نتمنى لكم الشفاء العاجل</span>
+        </div>
+    </div>
+
+    <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyArFKjBYsFhsPyJPJpjLhH2eSEHlUFEzhI",
+  authDomain: "queue-717d5.firebaseapp.com",
+  databaseURL: "https://queue-717d5-default-rtdb.firebaseio.com",
+  projectId: "queue-717d5",
+  storageBucket: "queue-717d5.firebasestorage.app",
+  messagingSenderId: "837806460328",
+  appId: "1:837806460328:web:f2070b93a2784b1b25619d",
+  measurementId: "G-GM30LE46F6"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database(); // Realtime Database
+const firestore = firebase.firestore(); // Firestore
+
+
+        // Variables
+        let currentScreen = 1;
+        let audioPath = 'audio/';
+        let videoPath = 'media/';
+        let speechRate = 1;
+        let alertDuration = 5;
+        let videos = [];
+        let currentVideoIndex = 0;
+        let audioCache = {};
+        let newsTickerInterval;
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+window.onload = function() {
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    loadSettings();
+    loadClinics();
+    loadDoctors(); // إضافة هذا السطر
+    listenForCalls();
+    listenForAlerts();
+    loadVideos();
+
+    document.getElementById('screenSelect').addEventListener('change', (e) => {
+        currentScreen = parseInt(e.target.value);
+        document.getElementById('screenSelectMenu').value = currentScreen;
+        loadClinics();
+        loadDoctors(); // تحديث الأطباء عند تغيير الشاشة
+    });
+
+    document.getElementById('screenSelectMenu').addEventListener('change', (e) => {
+        currentScreen = parseInt(e.target.value);
+        document.getElementById('screenSelect').value = currentScreen;
+        loadClinics();
+        loadDoctors(); // تحديث الأطباء عند تغيير الشاشة
+    });
+
+    updatePlayPauseIcons();
+    updateMuteIcons();
+};
+
+        function updateDateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            document.getElementById('currentTime').textContent = timeStr;
+            document.getElementById('currentDate').textContent = dateStr;
+        }
+
+        function loadSettings() {
+            db.ref('settings').on('value', (snapshot) => {
+                const settings = snapshot.val() || {};
+                document.getElementById('centerName').textContent = settings.centerName || 'المركز الطبي';
+                
+                const ticker = document.getElementById('newsTicker');
+                ticker.textContent = settings.newsContent || 'مرحباً بكم في المركز الطبي';
+                
+                // Setup news ticker animation
+                const speed = settings.newsSpeed || 50;
+                startNewsTicker(speed);
+                
+                audioPath = settings.audioPath || 'audio/';
+                videoPath = settings.videoPath || 'media/';
+                speechRate = settings.speechRate || 1;
+                alertDuration = settings.alertDuration || 5;
+                
+                // Preload audio files
+                preloadAudio();
+            });
+        }
+
+        function startNewsTicker(speed) {
+            if (newsTickerInterval) clearInterval(newsTickerInterval);
+            
+            const container = document.getElementById('newsTickerContainer');
+            const ticker = document.getElementById('newsTicker');
+            const parent = container.parentElement;
+            const containerWidth = parent.offsetWidth;
+            const tickerWidth = ticker.offsetWidth;
+            
+            let position = containerWidth;
+            container.style.transform = `translateX(${position}px)`;
+            container.style.top = '50%';
+            container.style.transform = `translateX(${position}px) translateY(-50%)`;
+            
+            const pixelsPerSecond = speed;
+            const interval = 20;
+            const pixelsPerInterval = (pixelsPerSecond / 1000) * interval;
+            
+            newsTickerInterval = setInterval(() => {
+                position -= pixelsPerInterval;
+                
+                if (position < -tickerWidth) {
+                    position = containerWidth;
+                }
+                
+                container.style.transform = `translateX(${position}px) translateY(-50%)`;
+            }, interval);
+        }
+
+        function loadClinics() {
+            db.ref('clinics').on('value', (snapshot) => {
+                const clinics = snapshot.val() || {};
+                const container = document.getElementById('clinicsContainer');
+                container.innerHTML = '';
+                
+                Object.keys(clinics).forEach(id => {
+                    const clinic = clinics[id];
+                    // Check if clinic should be displayed on current screen
+                    const screens = Array.isArray(clinic.screens) ? clinic.screens : [clinic.screen];
+                    if (screens.includes(currentScreen)) {
+                        const card = createClinicCard(id, clinic);
+                        container.appendChild(card);
+                    }
+                });
+            });
+        }
+
+
+async function loadDoctors() {
+    try {
+        // Get today's day name in Arabic
+        const today = new Date();
+        const dayName = today.toLocaleDateString('ar-EG', { weekday: 'long' });
+        
+        // Get current screen
+        const currentScreenNum = parseInt(document.getElementById('screenSelect')?.value || 1);
+        
+        // Query doctors from Firestore
+        const doctorsSnap = await firestore.collection('doctors')
+            .where('workStatus', '==', 'نشط')
+            .get();
+
+        const container = document.getElementById('doctorsContainer');
+        
+        if (doctorsSnap.empty) {
+            container.innerHTML = '<p class="text-gray-500 text-sm text-center">لا يوجد أطباء متواجدون</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        
+        doctorsSnap.forEach(doc => {
+            const doctor = doc.data();
+            
+            // Filter by work days
+            if (!doctor.workDays || !doctor.workDays.includes(dayName)) {
+                return;
+            }
+            
+            // Filter by clinic screen if doctor has clinicId
+            if (doctor.clinicId) {
+                // Check if doctor's clinic is displayed on current screen
+                db.ref('clinics/' + doctor.clinicId).once('value', (clinicSnap) => {
+                    const clinic = clinicSnap.val();
+                    if (clinic) {
+                        const screens = Array.isArray(clinic.screens) ? clinic.screens : [clinic.screen];
+                        if (!screens.includes(currentScreenNum)) {
+                            return;
+                        }
+                    }
+                });
+            }
+            
+            // Get image URL or use placeholder
+            const imageUrl = doctor.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=0d9488&color=fff&size=80`;
+            
+            const div = document.createElement('div');
+            div.className = 'bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-3 border border-teal-200';
+            div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <img src="${imageUrl}" 
+                         class="w-16 h-16 rounded-full object-cover border-2 border-teal-500" 
+                         onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=0d9488&color=fff&size=80'">
+                    <div class="flex-1">
+                        <p class="font-bold text-gray-800 text-sm">${doctor.name}</p>
+                        <p class="text-xs text-gray-600">${doctor.specialty}</p>
+                        <p class="text-xs text-teal-600 font-bold">${doctor.shift}</p>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+        
+        if (container.children.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-sm text-center">لا يوجد أطباء متواجدون اليوم</p>';
+        }
+        
+    } catch (error) {
+        console.error('Error loading doctors:', error);
+        document.getElementById('doctorsContainer').innerHTML = 
+            '<p class="text-red-500 text-sm text-center">خطأ في تحميل بيانات الأطباء</p>';
+    }
+}
+
+
+
+
+
+        
+        function createClinicCard(id, clinic) {
+            const div = document.createElement('div');
+            div.id = 'clinic-' + id;
+            const baseClass = 'clinic-card bg-white rounded-xl shadow-lg p-4 border-r-4';
+            const statusClass = clinic.status === 'active' ? '' : 'paused';
+            div.className = `${baseClass} border-blue-600 ${statusClass}`;
+            
+            const statusColor = clinic.status === 'active' ? 'text-green-600' : 'text-red-600';
+            const statusText = clinic.status === 'active' ? 'نشط' : 'متوقف';
+            
+            const lastCallTime = clinic.lastCall ? new Date(clinic.lastCall).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+            
+            div.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-2xl font-bold text-gray-800">${clinic.name}</h3>
+                    <span class="text-5xl font-black text-blue-600">${clinic.currentNumber || 0}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm text-gray-600">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>آخر نداء: ${lastCallTime}</span>
+                    </div>
+                    <span class="${statusColor} font-bold">${statusText}</span>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function listenForCalls() {
+            db.ref('calls').orderByChild('timestamp').limitToLast(1).on('child_added', (snapshot) => {
+                const call = snapshot.val();
+                if (!call) return;
+                if (call.timestamp > Date.now() - 5000) {
+                    // Check if the clinic is on current screen
+                    db.ref('clinics/' + call.clinicId).once('value', (clinicSnapshot) => {
+                        const clinic = clinicSnapshot.val();
+                        if (clinic) {
+                            const screens = Array.isArray(clinic.screens) ? clinic.screens : [clinic.screen];
+                            if (screens.includes(currentScreen)) {
+                                handleCall(call);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function listenForAlerts() {
+            db.ref('alerts').orderByChild('timestamp').limitToLast(1).on('child_added', (snapshot) => {
+                const alert = snapshot.val();
+                if (!alert) return;
+                if (alert.timestamp > Date.now() - 5000) {
+                    showNotification(alert.message, new Date(alert.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }));
+                }
+            });
+        }
+
+        async function handleCall(call) {
+            // Highlight clinic card
+            const clinicCard = document.getElementById('clinic-' + call.clinicId);
+            if (clinicCard) {
+                clinicCard.classList.add('active', 'blink', 'bg-blue-50');
+                setTimeout(() => {
+                    clinicCard.classList.remove('blink');
+                    setTimeout(() => {
+                        clinicCard.classList.remove('active', 'bg-blue-50');
+                    }, 3000);
+                }, 3000);
+            }
+            
+            // Show notification
+            const message = `على العميل رقم ${call.number} التوجه إلى ${call.clinicName}`;
+            const time = new Date(call.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+            showNotification(message, time);
+            
+            // Play audio
+            await playCallAudio(call.number, call.clinicName);
+        }
+
+        function showNotification(text, time) {
+            const bar = document.getElementById('notificationBar');
+            document.getElementById('notificationText').textContent = text;
+            document.getElementById('notificationTime').textContent = time;
+            
+            bar.classList.remove('hidden');
+            
+            setTimeout(() => {
+                bar.classList.add('hidden');
+            }, alertDuration * 1000);
+        }
+
+        async function playCallAudio(number, clinicName) {
+            try {
+                // Play ding
+                await playAudioWithRate(audioPath + 'ding.mp3', 1);
+                
+                // Play number with speech rate (try mp3 then fallback to TTS)
+                try {
+                    await playAudioWithRate(audioPath + number + '.mp3', speechRate);
+                } catch(e) {
+                    // fallback to TTS for number
+                    speakText(number);
+                }
+
+                // Try to find clinic audio and play, else TTS clinic name
+                const clinicsSnap = await db.ref('clinics').once('value');
+                const clinics = clinicsSnap.val() || {};
+                const clinic = Object.values(clinics).find(c => c.name === clinicName);
+                if (clinic) {
+                    try {
+                        await playAudioWithRate(audioPath + 'clinic' + clinic.number + '.mp3', speechRate);
+                    } catch(e) {
+                        speakText(`التوجه إلى ${clinicName}`);
+                    }
+                } else {
+                    speakText(`التوجه إلى ${clinicName}`);
+                }
+            } catch (err) {
+                console.log('Audio play error, fallback to TTS', err);
+                speakText(`على العميل رقم ${number} التوجه إلى ${clinicName}`);
+            }
+        }
+
+        async function playAudioWithRate(url, rate) {
+            // Uses WebAudio for playback rate control
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('not-found');
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.playbackRate.value = rate;
+                    source.connect(audioContext.destination);
+
+                    source.onended = () => resolve();
+                    source.start(0);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // single playAudio (used by preload and fallback)
+        function playAudioSimple(src) {
+            return new Promise((resolve, reject) => {
+                const filename = src.split('/').pop();
+                let audio;
+                
+                if (audioCache[filename]) {
+                    audio = audioCache[filename].cloneNode();
+                } else {
+                    audio = new Audio(src);
+                }
+                
+                audio.onended = resolve;
+                audio.onerror = reject;
+                audio.play().catch(reject);
+            });
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ar-SA';
+                utterance.rate = speechRate;
+                speechSynthesis.speak(utterance);
+            } else {
+                console.log('TTS not supported');
+            }
+        }
+
+        function loadVideos() {
+            db.ref('settings').once('value', (snapshot) => {
+                const settings = snapshot.val() || {};
+                const useLocal = settings.useLocalVideos || false;
+                const localPath = settings.localVideoPath || '/sdcard/Videos/';
+                const videoList = settings.videoList || ['video1.mp4', 'video2.mp4', 'video3.mp4'];
+                
+                videos = videoList.map(v => {
+                    if (useLocal) {
+                        return localPath + v;
+                    } else {
+                        return videoPath + v;
+                    }
+                });
+                
+                const video = document.getElementById('videoPlayer');
+                
+                if (videos.length > 0) {
+                    video.src = videos[0];
+                    video.volume = 0.5;
+                    
+                    video.addEventListener('ended', () => {
+                        currentVideoIndex = (currentVideoIndex + 1) % videos.length;
+                        video.src = videos[currentVideoIndex];
+                        video.play().catch(err => console.log('video play error', err));
+                    });
+                    
+                    video.addEventListener('error', () => {
+                        console.log('Error loading video:', videos[currentVideoIndex]);
+                        currentVideoIndex = (currentVideoIndex + 1) % videos.length;
+                        if (currentVideoIndex < videos.length) {
+                            video.src = videos[currentVideoIndex];
+                            video.play().catch(err => console.log('video play error', err));
+                        }
+                    });
+                    
+                    video.play().catch(err => console.log('Autoplay prevented:', err));
+                }
+            });
+        }
+
+        // Play / Pause for video
+        function togglePlayPause() {
+            const video = document.getElementById('videoPlayer');
+            if (video.paused) {
+                video.play().catch(() => {});
+            } else {
+                video.pause();
+            }
+            updatePlayPauseIcons();
+        }
+
+        function updatePlayPauseIcons() {
+            const video = document.getElementById('videoPlayer');
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+
+            if (video.paused) {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+            } else {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+            }
+        }
+
+        // Mute toggle
+        function toggleMute() {
+            const video = document.getElementById('videoPlayer');
+            video.muted = !video.muted;
+            updateMuteIcons();
+        }
+
+        function updateMuteIcons() {
+            const video = document.getElementById('videoPlayer');
+            const muteIcon = document.getElementById('muteIcon');
+            const unmuteIcon = document.getElementById('unmuteIcon');
+            if (video.muted || video.volume === 0) {
+                muteIcon.classList.remove('hidden');
+                unmuteIcon.classList.add('hidden');
+            } else {
+                muteIcon.classList.add('hidden');
+                unmuteIcon.classList.remove('hidden');
+            }
+        }
+
+        // Volume change
+        function changeVolume(val) {
+            const video = document.getElementById('videoPlayer');
+            video.volume = val / 100;
+            video.muted = false;
+            document.getElementById('volumeDisplay').textContent = val + '%';
+            updateMuteIcons();
+        }
+
+        // Preload audio
+        function preloadAudio() {
+            const commonFiles = ['ding.mp3'];
+            for (let i = 1; i <= 100; i++) commonFiles.push(i + '.mp3');
+            for (let i = 1; i <= 20; i++) commonFiles.push('clinic' + i + '.mp3');
+
+            commonFiles.forEach(file => {
+                const audio = new Audio(audioPath + file);
+                audio.preload = 'auto';
+                audioCache[file] = audio;
+            });
+        }
+
+        // Notification & UI helpers already included above
+
+        // Settings menu toggle
+        function toggleSettingsMenu() {
+            const menu = document.getElementById('settingsMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Fullscreen toggle
+        function toggleFullscreen() {
+            const elem = document.documentElement;
+            const btn = document.getElementById('fullscreenBtn');
+            const btnMenu = document.getElementById('fullscreenBtnMenu');
+
+            if (!document.fullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) { /* Safari */
+                    elem.webkitRequestFullscreen();
+                }
+                if (btn) btn.textContent = "📺 إيقاف ملء الشاشة";
+                if (btnMenu) btnMenu.textContent = "📺 إيقاف ملء الشاشة";
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+                if (btn) btn.textContent = "📺 تفعيل ملء الشاشة";
+                if (btnMenu) btnMenu.textContent = "📺 تفعيل ملء الشاشة";
+            }
+        }
+
+        // Zoom controls (applies transform to main content to keep header fixed)
+        let zoomLevel = 1;
+        const minZoom = 0.5;
+        const maxZoom = 2.5;
+
+        function zoomIn() {
+            zoomLevel = Math.min(maxZoom, +(zoomLevel + 0.1).toFixed(2));
+            applyZoom();
+        }
+
+        function zoomOut() {
+            zoomLevel = Math.max(minZoom, +(zoomLevel - 0.1).toFixed(2));
+            applyZoom();
+        }
+
+        function resetZoom() {
+            zoomLevel = 1;
+            applyZoom();
+        }
+
+        function applyZoom() {
+            // We'll scale the middle area (main content) but keep header/footer normal
+            const mainAreas = document.querySelectorAll('.flex-1, .w-1/4, .w-1/6');
+            mainAreas.forEach(el => {
+                el.style.transform = `scale(${zoomLevel})`;
+                el.style.transformOrigin = 'top right';
+            });
+            document.getElementById('zoomLevel').textContent = Math.round(zoomLevel * 100) + '%';
+        }
+
+        // update icons when video state changes
+        document.getElementById('videoPlayer')?.addEventListener?.('play', updatePlayPauseIcons);
+        document.getElementById('videoPlayer')?.addEventListener?.('pause', updatePlayPauseIcons);
+        document.getElementById('videoPlayer')?.addEventListener?.('volumechange', updateMuteIcons);
+
+        // ensure event listeners exist after DOM ready
+        document.addEventListener('visibilitychange', () => {
+            // resume audioContext on user interaction / visibility
+            if (document.visibilityState === 'visible' && audioContext.state === 'suspended') {
+                audioContext.resume().catch(()=>{});
+            }
+        });
+
+    </script>
+</body>
+</html>

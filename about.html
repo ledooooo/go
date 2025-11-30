@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عن النظام</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-amber-50 to-orange-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <svg class="w-32 h-32 mx-auto text-amber-600 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h1 class="text-5xl font-bold text-gray-800 mb-4">نظام إدارة انتظار العملاء</h1>
+            <p class="text-xl text-gray-600">نظام متكامل لإدارة طوابير المرضى</p>
+        </div>
+
+        <!-- Main Info -->
+        <div class="max-w-4xl mx-auto">
+            <!-- Version Info -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                    </svg>
+                    معلومات الإصدار
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-amber-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">رقم الإصدار</p>
+                        <p class="text-2xl font-bold text-gray-800">1.0.0</p>
+                    </div>
+                    <div class="bg-amber-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">تاريخ الإصدار</p>
+                        <p class="text-2xl font-bold text-gray-800">نوفمبر 2025</p>
+                    </div>
+                    <div class="bg-amber-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">حالة النظام</p>
+                        <p class="text-2xl font-bold text-green-600">مستقر</p>
+                    </div>
+                    <div class="bg-amber-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">آخر تحديث</p>
+                        <p class="text-2xl font-bold text-gray-800">24/11/2025</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                    </svg>
+                    مميزات النظام
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold text-gray-800">إدارة متعددة العيادات</h3>
+                            <p class="text-sm text-gray-600">إضافة وإدارة عيادات متعددة بسهولة</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold text-gray-800">شاشات عرض متعددة</h3>
+                            <p class="text-sm text-gray-600">دعم 4 شاشات عرض مستقلة</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold text-gray-800">نداء صوتي ذكي</h3>
+                            <p class="text-sm text-gray-600">ملفات صوتية مسجلة + نطق تلقائي احتياطي</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold text-gray-800">شريط أخبار متحرك</h3>
+                            <p class="text-sm text-gray-600">عرض إعلانات وتنبيهات متحركة</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold text-gray-800">طباعة التذاكر</h3>
+                            <p class="text-sm text-gray-600">طباعة تذاكر احترافية 5x5 سم</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold text-gray-800">متابعة للمرضى</h3>
+                            <p class="text-sm text-gray-600">تطبيق ويب للمتابعة من الهاتف</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold text-gray-800">فيديوهات توعوية</h3>
+                            <p class="text-sm text-gray-600">عرض فيديوهات تثقيفية تلقائياً</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold text-gray-800">حماية بكلمة سر</h3>
+                            <p class="text-sm text-gray-600">حماية كل عيادة بكلمة سر مستقلة</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tech Stack -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    </svg>
+                    التقنيات المستخدمة
+                </h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <p class="font-bold text-gray-800">Firebase</p>
+                        <p class="text-sm text-gray-600">قاعدة البيانات</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <p class="font-bold text-gray-800">Tailwind CSS</p>
+                        <p class="text-sm text-gray-600">التصميم</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <p class="font-bold text-gray-800">HTML5</p>
+                        <p class="text-sm text-gray-600">البنية الأساسية</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <p class="font-bold text-gray-800">JavaScript</p>
+                        <p class="text-sm text-gray-600">البرمجة</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <p class="font-bold text-gray-800">Web Audio API</p>
+                        <p class="text-sm text-gray-600">الصوتيات</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <p class="font-bold text-gray-800">Web Speech API</p>
+                        <p class="text-sm text-gray-600">النطق التلقائي</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <p class="font-bold text-gray-800">GitHub Pages</p>
+                        <p class="text-sm text-gray-600">الاستضافة</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4 text-center">
+                        <p class="font-bold text-gray-800">PWA Ready</p>
+                        <p class="text-sm text-gray-600">تطبيق ويب</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact & Support -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    الدعم والمساعدة
+                </h2>
+                <div class="space-y-4">
+                    <p class="text-gray-700">للحصول على الدعم الفني أو الإبلاغ عن مشاكل:</p>
+                    <div class="bg-amber-50 rounded-lg p-4">
+                        <p class="font-bold text-gray-800 mb-2">📧 البريد الإلكتروني:</p>
+                        <p class="text-gray-600">support@queue-system.com</p>
+                    </div>
+                    <div class="bg-amber-50 rounded-lg p-4">
+                        <p class="font-bold text-gray-800 mb-2">📱 الهاتف:</p>
+                        <p class="text-gray-600" dir="ltr">+20 123 456 7890</p>
+                    </div>
+                    <div class="bg-amber-50 rounded-lg p-4">
+                        <p class="font-bold text-gray-800 mb-2">🌐 الموقع الإلكتروني:</p>
+                        <p class="text-gray-600">www.queue-system.com</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- License -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    الترخيص
+                </h2>
+                <p class="text-gray-700 leading-relaxed">
+                    جميع الحقوق محفوظة © 2025. هذا النظام مملوك ومحمي بموجب قوانين حقوق النشر والملكية الفكرية. يُسمح باستخدام النظام للأغراض الطبية والمؤسسية فقط بموجب ترخيص صالح.
+                </p>
+            </div>
+
+            <!-- Back Button -->
+            <div class="text-center">
+                <a href="index.html" class="inline-block bg-amber-600 text-white px-8 py-3 rounded-lg hover:bg-amber-700 font-bold text-lg shadow-lg transform transition-all hover:scale-105">
+                    العودة للصفحة الرئيسية
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-gray-600 mt-12">
+            <p class="text-sm">صُنع بـ ❤️ لخدمة المرضى والمراكز الطبية</p>
+        </div>
+    </div>
+</body>
+</html>
